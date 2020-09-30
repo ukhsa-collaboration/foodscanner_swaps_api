@@ -1,0 +1,45 @@
+version: "3"
+
+networks:
+    backend:
+        driver: bridge
+
+services:
+    app:
+        build:
+            context: .
+            dockerfile: ./docker/Dockerfile
+        image: ${COMPOSE_PROJECT_NAME}-app
+        restart: always
+        ports:
+            - "80:80"
+            - "443:443"
+        depends_on:
+            - db
+        networks:
+            - backend
+        env_file:
+            - .env
+        volumes:
+            - ./site:/var/www/my-site
+            - ./.env:/var/www/my-site/.env
+
+    db:
+        image: mariadb:10.5
+        restart: always
+        ports:
+            - 3306:3306
+        networks:
+            - backend
+        volumes:
+            - mysql-data:/var/lib/mysql
+        env_file:
+            - .env
+
+
+volumes:
+  mysql-data:
+    driver: local
+
+
+
