@@ -1,2 +1,3 @@
-# phe-food-scanner-swaps-api
+# PHE Swaps API
 
+API just for swaps.
