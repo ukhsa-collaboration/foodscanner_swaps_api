@@ -24,7 +24,10 @@ system_info:
 # Need to create the cron files here instead of inside write_files, otherwise get issues with it wanting to shutdown during setup.
 # https://docs.docker.com/engine/reference/commandline/login/
 runcmd:
-  - docker login ${docker_registry} --username=${docker_registry_user} --password=${docker_registry_password}
+  - apt update && apt install python3-pip -y && pip3 install awscli
+  - export AWS_ACCESS_KEY_ID="${iam_ecr_key}"
+  - export AWS_SECRET_ACCESS_KEY="${iam_ecr_secret}"
+  - aws ecr get-login-password --region eu-west-2 | docker login --username AWS --password-stdin ${docker_registry}
   - docker pull ${docker_image_name}
   - echo 'docker run  -e "SWAPS_CACHE_DB_HOST=${swaps_database_host}" -e "SWAPS_CACHE_DB_NAME=${swaps_database_name}" -e "SWAPS_CACHE_DB_USER=${swaps_database_username}" -e "SWAPS_CACHE_DB_PASSWORD=${swaps_database_password}" -e "SWAPS_CACHE_DB_PORT=${swaps_database_port}" -e "ETL_DB_HOST=${etl_database_host}" -e "ETL_DB_NAME=${etl_database_name}" -e "ETL_DB_USER=${etl_database_username}" -e "ETL_DB_PASSWORD=${etl_database_password}" -e "ETL_DB_PORT=${etl_database_port}" -e "ETL_TABLE_NAME=${etl_database_table}" ${docker_image_name}' > /root/run-compute-engine.sh
   - echo "@reboot /bin/bash /root/run-compute-engine.sh || true && /usr/sbin/shutdown -h now 2> /root/errors.log\n" > /root/cron.conf

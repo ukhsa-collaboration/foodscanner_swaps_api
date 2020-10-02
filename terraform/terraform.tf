@@ -24,6 +24,16 @@ variable "iam_ec2_secret" {
   default = 3306
 }
 
+variable "iam_ecr_key" {
+  type = string
+  description = "The AWS key for the IAM user that has permission to login to the ECR e.g. 'aws ecr get-login-password'."
+}
+
+variable "iam_ecr_secret" {
+  type = string
+  description = "The AWS secret for the IAM user that has permission to login to the ECR e.g. 'aws ecr get-login-password'."
+}
+
 variable "vpc_id" {
   type = string
   description = "The id of the VPC you wish for the swaps API instances and load balancer deployed to."
@@ -175,6 +185,8 @@ data "template_file" "compute_instance_user_data" {
 
   vars = {
     ssh_public_key = var.ssh_public_key
+    iam_ecr_key = var.iam_ecr_key
+    iam_ecr_secret = var.iam_ecr_secret
     
     docker_registry = var.compute_docker_registry
     docker_registry_user = var.compute_docker_registry_user
@@ -303,6 +315,8 @@ data "template_file" "user_data" {
     ssh_public_key = var.ssh_public_key
     iam_ec2_key = var.iam_ec2_key
     iam_ec2_secret = var.iam_ec2_secret
+    iam_ecr_key = var.iam_ecr_key
+    iam_ecr_secret = var.iam_ecr_secret
     swaps_api_auth_token = var.swaps_api_auth_token
     docker_registry = var.swaps_api_docker_registry
     docker_registry_user = var.swaps_api_docker_registry_user
