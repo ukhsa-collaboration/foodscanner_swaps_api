@@ -2,6 +2,21 @@ provider "aws" {
   region = "eu-west-2"
 }
 
+variable environment {
+  type = string
+  default = "dev"
+}
+
+variable "Creator" {
+  type = string
+  default = "Terraform"
+}
+
+variable "project" {
+  type = string
+  default = "Food Scanner"
+}
+
 variable swaps_api_auth_token {
   type = string
   description = "A long random string that should be placed in X_AUTH_TOKEN header of API requests to the swaps API for authentication.'"
@@ -12,17 +27,17 @@ variable "ssh_public_key" {
   description = "The public key that corresponds to the private SSH key you would want to use to log into the EC2 instances with, should you need to. Should start like 'ssh-rsa AAAA...'"
 }
 
-variable "iam_ec2_key" {
-  type = string
-  description = "The AWS key for the IAM user that has permission to spawn and start/stop ec2 instances."
-  default = 3306
-}
-
-variable "iam_ec2_secret" {
-  type = string
-  description = "The AWS secret for the IAM user that has permission to spawn ec2 instances."
-  default = 3306
-}
+//variable "iam_ec2_key" {
+//  type = string
+//  description = "The AWS key for the IAM user that has permission to spawn and start/stop ec2 instances."
+//  default = 3306
+//}
+//
+//variable "iam_ec2_secret" {
+//  type = string
+//  description = "The AWS secret for the IAM user that has permission to spawn ec2 instances."
+//  default = 3306
+//}
 
 variable "iam_ecr_key" {
   type = string
@@ -55,10 +70,10 @@ variable "swaps_api_docker_registry_user" {
   default = "AWS"
 }
 
-variable "swaps_api_docker_registry_password" {
-  type = string
-  description = "The password to authenticate against the docker registry. E.g. for AWS ECR  you get this by running 'aws ecr get-login-password --region eu-west-2'"
-}
+//variable "swaps_api_docker_registry_password" {
+//  type = string
+//  description = "The password to authenticate against the docker registry. E.g. for AWS ECR  you get this by running 'aws ecr get-login-password --region eu-west-2'"
+//}
 
 variable "compute_docker_registry" {
   type = string
@@ -76,10 +91,10 @@ variable "compute_docker_registry_user" {
   default = "AWS"
 }
 
-variable "compute_docker_registry_password" {
-  type = string
-  description = "The password to authenticate against the compute docker registry. E.g. for AWS ECR  you get this by running 'aws ecr get-login-password --region eu-west-2'"
-}
+//variable "compute_docker_registry_password" {
+//  type = string
+//  description = "The password to authenticate against the compute docker registry. E.g. for AWS ECR  you get this by running 'aws ecr get-login-password --region eu-west-2'"
+//}
 
 variable "etl_database_host" {
   type = string
@@ -171,14 +186,42 @@ variable "food_database_table" {
   default = "f_food"
 }
 
+variable "lb_certificate_arn" {
+  type = string
+  description = "SSL certificate ARN for load balancer"
+}
+
 data "aws_vpc" "swaps_api_vpc" {
   id = var.vpc_id
 }
 
-data "aws_subnet_ids" "default" {
+//data "aws_subnet_ids" "default" {
+//  vpc_id = data.aws_vpc.swaps_api_vpc.id
+//}
+
+data "aws_subnet_ids" "public" {
+  filter {
+    name   = "tag:Type"
+    values = ["public"]
+  }
+//  vpc_id = module.vpc.vpc_id
   vpc_id = data.aws_vpc.swaps_api_vpc.id
 }
 
+
+data "aws_subnet_ids" "private" {
+  filter {
+    name   = "tag:Type"
+    values = ["private"]
+  }
+   //vpc_id = module.vpc.vpc_id
+  vpc_id = data.aws_vpc.swaps_api_vpc.id
+}
+
+data "aws_subnet_ids" "all" {
+//  vpc_id = module.vpc.vpc_id
+  vpc_id = data.aws_vpc.swaps_api_vpc.id
+}
 
 data "template_file" "compute_instance_user_data" {
   template = file("./compute-instance-cloud-init.yml")
@@ -190,7 +233,6 @@ data "template_file" "compute_instance_user_data" {
     
     docker_registry = var.compute_docker_registry
     docker_registry_user = var.compute_docker_registry_user
-    docker_registry_password = var.compute_docker_registry_password
     docker_image_name = var.compute_docker_image_name
 
     swaps_database_host = var.swaps_database_host
@@ -212,20 +254,26 @@ data "template_file" "compute_instance_user_data" {
 # Create security group for the cache-compute instance
 resource "aws_security_group" "swaps_compute_engine" {
   name = "swaps-cache-calculator"
-
+  vpc_id = data.aws_vpc.swaps_api_vpc.id
   ingress {
-    from_port   = 22
-    to_port     = 22
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
+    from_port = 22
+    to_port = 22
+    protocol = "tcp"
+    cidr_blocks = [
+      data.aws_vpc.swaps_api_vpc.cidr_block]
   }
-
   # Allow the server to connect outwards. E.g. to apply updates etc.
   egress {
     from_port   = 0
     to_port     = 0
     protocol    = "-1"
     cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  tags = {
+    Environment = var.environment
+    Project = var.project
+    Creator = var.Creator
   }
 }
 
@@ -235,11 +283,15 @@ resource "aws_instance" "swaps_compute_engine" {
   ami                    = "ami-05c424d59413a2876"
   instance_type          = "c5.24xlarge"
   vpc_security_group_ids = [aws_security_group.swaps_compute_engine.id]
-
+  subnet_id = tolist(data.aws_subnet_ids.public.ids)[0]
   user_data = data.template_file.compute_instance_user_data.rendered
+  associate_public_ip_address = true
 
   tags = {
     Name = "swaps-cache-calculator"
+    Environment = var.environment
+    Project = var.project
+    Creator = var.Creator
   }
 }
 
@@ -247,6 +299,7 @@ resource "aws_instance" "swaps_compute_engine" {
 # Create the security group for the load balancer
 resource "aws_security_group" "alb" {
   name = "swaps-api-alb"
+  vpc_id = data.aws_vpc.swaps_api_vpc.id
 
   # Allow inbound HTTP requests
   ingress {
@@ -270,19 +323,25 @@ resource "aws_security_group" "alb" {
     protocol    = "-1"
     cidr_blocks = ["0.0.0.0/0"]
   }
+  tags = {
+    Environment = var.environment
+    Project = var.project
+    Creator = var.Creator
+  }
 }
 
 
 # Create security group for the swaps API instances
 resource "aws_security_group" "instance" {
   name = "swaps-api"
+  vpc_id = data.aws_vpc.swaps_api_vpc.id
 
-  ingress {
-    from_port   = 22
-    to_port     = 22
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
+//  ingress {
+//    from_port   = 22
+//    to_port     = 22
+//    protocol    = "tcp"
+//    cidr_blocks = ["0.0.0.0/0"]
+//  }
 
   ingress {
     from_port   = 80
@@ -305,6 +364,11 @@ resource "aws_security_group" "instance" {
     protocol    = "-1"
     cidr_blocks = ["0.0.0.0/0"]
   }
+  tags = {
+    Environment = var.environment
+    Project = var.project
+    Creator = var.Creator
+  }
 }
 
 
@@ -313,14 +377,11 @@ data "template_file" "user_data" {
 
   vars = {
     ssh_public_key = var.ssh_public_key
-    iam_ec2_key = var.iam_ec2_key
-    iam_ec2_secret = var.iam_ec2_secret
     iam_ecr_key = var.iam_ecr_key
     iam_ecr_secret = var.iam_ecr_secret
     swaps_api_auth_token = var.swaps_api_auth_token
     docker_registry = var.swaps_api_docker_registry
     docker_registry_user = var.swaps_api_docker_registry_user
-    docker_registry_password = var.swaps_api_docker_registry_password
     docker_image_name = var.swaps_api_docker_image_name
 
     swaps_database_host = var.swaps_database_host
@@ -355,7 +416,7 @@ resource "aws_launch_configuration" "swaps_api" {
   instance_type   = "t3a.micro"
   security_groups = [aws_security_group.instance.id]
   user_data       = data.template_file.user_data.rendered
-
+  associate_public_ip_address = true
   # When swapping out instances, launch new ones before destroying old ones so there is no 
   # downtime.
   lifecycle {
@@ -367,8 +428,9 @@ resource "aws_launch_configuration" "swaps_api" {
 # Create the auto scaling group (ASG) that will manage the deployed EC2 instances.
 resource "aws_autoscaling_group" "swaps_api_asg" {
   launch_configuration = aws_launch_configuration.swaps_api.name
-  vpc_zone_identifier  = data.aws_subnet_ids.default.ids
-
+//  vpc_zone_identifier  = data.aws_subnet_ids.default.ids
+  vpc_zone_identifier  = data.aws_subnet_ids.public.ids
+  name = "fs_swaps_asg"
   target_group_arns = [aws_lb_target_group.asg.arn]
   health_check_type = "ELB"
 
@@ -387,36 +449,74 @@ resource "aws_autoscaling_group" "swaps_api_asg" {
 resource "aws_lb" "swaps_api_alb" {
   name               = "swaps-api-load-balancer"
   load_balancer_type = "application"
-  subnets            = data.aws_subnet_ids.default.ids
+//  subnets            = data.aws_subnet_ids.default.ids
+  subnets            = data.aws_subnet_ids.public.ids
   security_groups    = [aws_security_group.alb.id]
+
+  tags = {
+    Environment = var.environment
+    Project = var.project
+    Creator = var.Creator
+  }
 }
 
 
 # Create a listener for the load balancer we just created.
+//resource "aws_lb_listener" "http" {
+//  load_balancer_arn = aws_lb.swaps_api_alb.arn
+//  port              = 80
+//  protocol          = "HTTP"
+//
+//  # By default, return a simple 404 page
+//  default_action {
+//    type = "fixed-response"
+//
+//    fixed_response {
+//      content_type = "text/plain"
+//      message_body = "404: page not found"
+//      status_code  = 404
+//    }
+//  }
+//}
+//
+
 resource "aws_lb_listener" "http" {
   load_balancer_arn = aws_lb.swaps_api_alb.arn
   port              = 80
   protocol          = "HTTP"
 
-  # By default, return a simple 404 page
   default_action {
-    type = "fixed-response"
+    type = "redirect"
 
-    fixed_response {
-      content_type = "text/plain"
-      message_body = "404: page not found"
-      status_code  = 404
+    redirect {
+      port        = "443"
+      protocol    = "HTTPS"
+      status_code = "HTTP_301"
     }
   }
 }
 
+resource "aws_lb_listener" "https" {
+  load_balancer_arn = aws_lb.swaps_api_alb.arn
+  port              = 443
+  protocol          = "HTTPS"
+  ssl_policy        = "ELBSecurityPolicy-2016-08"
+  certificate_arn   =  var.lb_certificate_arn
+
+  # By default, return a simple 404 page
+  default_action {
+    type             = "forward"
+    target_group_arn = aws_lb_target_group.asg.arn
+  }
+}
 
 # Create a target group that will health check against our EC2 API instances.
 resource "aws_lb_target_group" "asg" {
   name     = "swaps-api-asg"
   port     = 80
   protocol = "HTTP"
-  vpc_id   = data.aws_vpc.swaps_api_vpc.id
+//  vpc_id   = module.vpc.vpc_id
+  vpc_id = data.aws_vpc.swaps_api_vpc.id
 
   health_check {
     path                = "/api/ping"
@@ -430,22 +530,23 @@ resource "aws_lb_target_group" "asg" {
 }
 
 
+
 # Add a rule to the load balancer listener, monitoring our 
-resource "aws_lb_listener_rule" "asg" {
-  listener_arn = aws_lb_listener.http.arn
-  priority     = 100
-
-  condition {
-    path_pattern {
-      values = ["*"]
-    }
-  }
-
-  action {
-    type             = "forward"
-    target_group_arn = aws_lb_target_group.asg.arn
-  }
-}
+//resource "aws_lb_listener_rule" "asg" {
+//  listener_arn = aws_lb_listener.http.arn
+//  priority     = 100
+//
+//  condition {
+//    path_pattern {
+//      values = ["*"]
+//    }
+//  }
+//
+//  action {
+//    type             = "forward"
+//    target_group_arn = aws_lb_target_group.asg.arn
+//  }
+//}
 
 
 output "alb_dns_name" {
