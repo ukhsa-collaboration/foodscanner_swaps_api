@@ -68,7 +68,7 @@ class SwapsController extends AbstractSlimController
                     uasort($swapResponseObjects, $compareFunc);
                 }
 
-                $swapResponseObjects = array_slice($swapResponseObjects, 0, 30);
+                $swapResponseObjects = array_slice($swapResponseObjects, 0, 33);
                 $response = ResponseLib::createSuccessResponse($swapResponseObjects, $this->m_response);
             }
         }
