@@ -27,17 +27,17 @@ variable "ssh_public_key" {
   description = "The public key that corresponds to the private SSH key you would want to use to log into the EC2 instances with, should you need to. Should start like 'ssh-rsa AAAA...'"
 }
 
-//variable "iam_ec2_key" {
-//  type = string
-//  description = "The AWS key for the IAM user that has permission to spawn and start/stop ec2 instances."
-//  default = 3306
-//}
-//
-//variable "iam_ec2_secret" {
-//  type = string
-//  description = "The AWS secret for the IAM user that has permission to spawn ec2 instances."
-//  default = 3306
-//}
+variable "iam_ec2_key" {
+  type = string
+  description = "The AWS key for the IAM user that has permission to spawn and start/stop ec2 instances."
+  default = 3306
+}
+
+variable "iam_ec2_secret" {
+  type = string
+  description = "The AWS secret for the IAM user that has permission to spawn ec2 instances."
+  default = 3306
+}
 
 variable "iam_ecr_key" {
   type = string
@@ -64,17 +64,6 @@ variable "swaps_api_docker_image_name" {
   description = "The name of the image. This **should** include the registry. E.g. xxxxxxxxxxxx.dkr.ecr.eu-west-2.amazonaws.com/swaps-api"
 }
 
-variable "swaps_api_docker_registry_user" {
-  type = string
-  description = "The username to authenticate against the docker registry. E.g. for AWS ECR this is always 'AWS'"
-  default = "AWS"
-}
-
-//variable "swaps_api_docker_registry_password" {
-//  type = string
-//  description = "The password to authenticate against the docker registry. E.g. for AWS ECR  you get this by running 'aws ecr get-login-password --region eu-west-2'"
-//}
-
 variable "compute_docker_registry" {
   type = string
   description = "The registry to pull the docker image from. E.g. xxxxxxxxxxxx.dkr.ecr.eu-west-2.amazonaws.com"
@@ -84,17 +73,6 @@ variable "compute_docker_image_name" {
   type = string
   description = "The name of the image. This **should** include the registry. E.g. xxxxxxxxxxxx.dkr.ecr.eu-west-2.amazonaws.com/swaps-compute-engine"
 }
-
-variable "compute_docker_registry_user" {
-  type = string
-  description = "The username to authenticate against the docker registry. E.g. for AWS ECR this is always 'AWS'"
-  default = "AWS"
-}
-
-//variable "compute_docker_registry_password" {
-//  type = string
-//  description = "The password to authenticate against the compute docker registry. E.g. for AWS ECR  you get this by running 'aws ecr get-login-password --region eu-west-2'"
-//}
 
 variable "etl_database_host" {
   type = string
@@ -232,7 +210,6 @@ data "template_file" "compute_instance_user_data" {
     iam_ecr_secret = var.iam_ecr_secret
     
     docker_registry = var.compute_docker_registry
-    docker_registry_user = var.compute_docker_registry_user
     docker_image_name = var.compute_docker_image_name
 
     swaps_database_host = var.swaps_database_host
@@ -379,9 +356,10 @@ data "template_file" "user_data" {
     ssh_public_key = var.ssh_public_key
     iam_ecr_key = var.iam_ecr_key
     iam_ecr_secret = var.iam_ecr_secret
+    iam_ec2_key = var.iam_ec2_key
+    iam_ec2_secret = var.iam_ec2_secret
     swaps_api_auth_token = var.swaps_api_auth_token
     docker_registry = var.swaps_api_docker_registry
-    docker_registry_user = var.swaps_api_docker_registry_user
     docker_image_name = var.swaps_api_docker_image_name
 
     swaps_database_host = var.swaps_database_host
