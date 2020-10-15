@@ -25,5 +25,6 @@ if (isset($_ENV['ENVIRONMENT']) && $_ENV['ENVIRONMENT'] === "dev")
 
 // register controllers
 SwapsController::registerRoutes($app);
+ProductsController::registerRoutes($app);
 
 $app->run();

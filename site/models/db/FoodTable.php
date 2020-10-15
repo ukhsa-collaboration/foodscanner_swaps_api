@@ -14,7 +14,11 @@ class FoodTable extends Programster\MysqlObjects\AbstractTable
 
     public function getFieldsThatAllowNull(): array
     {
-        return array();
+        return array(
+            'manufacturer',
+            'packsize',
+            '100units',
+        );
     }
 
 
@@ -61,6 +65,39 @@ class FoodTable extends Programster\MysqlObjects\AbstractTable
         }
 
         return $result;
+    }
+
+
+    /**
+     * Fetch a single product by its barcode
+     * @param string $barcode
+     * @return \FoodItem
+     * @throws ExceptionProductNotFound - if the product with the provided barcode could not be found.
+     */
+    public function findByBarcode(string $barcode) : FoodItem
+    {
+        $products = $this->loadWhereAnd(['barcode' => $barcode]);
+
+        // if barcode not found try trimming leading zeros (was in original API)
+        if (count($products) !== 1 && Programster\CoreLibs\StringLib::startsWith($barcode, "0"))
+        {
+            $alteredBarcodeAttempt = ltrim($barcode, '0');
+            $products = $this->loadWhereAnd(['barcode' => $alteredBarcodeAttempt]);
+        }
+
+        // if barcode not found try padding with leading zeros to 13
+        if (count($products) !== 1)
+        {
+            $alteredBarcodeAttempt = str_pad($barcode, 13, '0', STR_PAD_LEFT);
+            $products = $this->loadWhereAnd(['barcode' => $alteredBarcodeAttempt]);
+        }
+
+        if (count($products) !== 1)
+        {
+            throw new ExceptionProductNotFound();
+        }
+
+        return $products[0];
     }
 }
 

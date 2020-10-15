@@ -21,8 +21,31 @@ class SiteSpecific
             if ($db->connect_errno)
             {
                 $db = null;
-                print "Failed to connect to database, raising exception." . PHP_EOL;
-                throw new Exception("Failed to connect to the swaps databse.");
+                throw new Exception("Failed to connect to the swaps database.");
+            }
+        }
+
+        return $db;
+    }
+
+
+    public static function getEtlDatabase() : mysqli
+    {
+        static $db = null;
+
+        if ($db === null)
+        {
+            $db = new mysqli(
+                $_ENV['ETL_DB_HOST'],
+                $_ENV['ETL_DB_USER'],
+                $_ENV['ETL_DB_PASSWORD'],
+                $_ENV['ETL_DB_DATABASE'],
+                $_ENV['ETL_DB_PORT']
+            );
+
+            if ($db->connect_errno)
+            {
+                throw new Exception("Failed to connect to the ETL database.");
             }
         }
 
@@ -46,7 +69,7 @@ class SiteSpecific
 
             if ($db->connect_errno)
             {
-                throw new Exception("Failed to connect to the swaps databse.");
+                throw new Exception("Failed to connect to the food database.");
             }
         }
 

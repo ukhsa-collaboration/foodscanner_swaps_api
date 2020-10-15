@@ -8,7 +8,6 @@
 
 
 # Now start the webserver
-#service apache2 restart
 service nginx start
 service php7.4-fpm start
 

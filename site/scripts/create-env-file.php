@@ -11,6 +11,8 @@
 $env = shell_exec("env");
 
 $epectedEnvironmentVariables = array(
+    "ENVIRONMENT",
+
     "SWAPS_DB_HOST",
     "SWAPS_DB_DATABASE",
     "SWAPS_DB_USER",
@@ -23,6 +25,13 @@ $epectedEnvironmentVariables = array(
     "FOOD_DB_PASSWORD",
     "FOOD_DB_PORT",
     "FOOD_DB_TABLE",
+    
+    "ETL_DB_HOST",
+    "ETL_DB_DATABASE",
+    "ETL_DB_USER",
+    "ETL_DB_PASSWORD",
+    "ETL_DB_PORT",
+    "ETL_DB_TABLE",
 
     "X_AUTH_TOKEN",
 
