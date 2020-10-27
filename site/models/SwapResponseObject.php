@@ -1,7 +1,7 @@
 <?php
 
 /*
- * A class to represent the swap in our response to /swaps/{barcode}
+ * A class to represent a single swap object in the collection of swaps in our response to /swaps/{barcode}
  * This object is necessary because we need to return the information about the food product, not just the
  * barcodes which the swap object has.
  */
@@ -9,14 +9,28 @@
 
 class SwapResponseObject implements JsonSerializable
 {
-    private FoodItem $m_foodItem;
+    private ProductResponseObject $m_productResponseObject;
     private int $m_rank;
+    private int $m_swapCount;
 
 
-    private function __construct(FoodItem $foodItem, int $rank)
+    /**
+     * Create a swap response object
+     * @param ProductResponseObject $productResponseObj - the product response object this swap is based on switching to.
+     * This object is basically the same response, just with a few properties added.
+     * @param int $rank - the rank or "similarity order" that this swap is in. E.g. top 3 is rank 1,2, and 3.
+     */
+    private function __construct(ProductResponseObject $productResponseObj, int $rank)
     {
-        $this->m_foodItem = $foodItem;
+        $this->m_productResponseObject = $productResponseObj;
         $this->m_rank = $rank;
+
+        // calculate how many people have swapped to this product (from any other product).
+        /* @var $swapRecordTable SwapRecordTable */
+        $swapRecordTable = SwapRecordTable::getInstance();
+        $barcodeTo = $productResponseObj->getFoodItem()->getBarcode();
+        $swapRecords = $swapRecordTable->loadFromBarcodeTo($barcodeTo);
+        $this->m_swapCount = count($swapRecords);
     }
 
 
@@ -30,14 +44,27 @@ class SwapResponseObject implements JsonSerializable
     {
         $swapResponseObjects = array();
         $foodTable = FoodTable::getInstance();
+        $foodConsolidatedTable = FoodConsolidatedTable::getInstance();
         $foodItems = $foodTable->fetchForSwaps(...$swaps);
+        $foodConsolidatedItems = $foodConsolidatedTable->fetchForSwaps(...$swaps);
 
         foreach ($swaps as $swap)
         {
             if (isset($foodItems[$swap->getSwapBarcode()]))
             {
                 $foodItem = $foodItems[$swap->getSwapBarcode()];
-                $swapResponseObjects[] = new SwapResponseObject($foodItem, $swap->getRank());
+
+                if (isset($foodConsolidatedItems[$swap->getSwapBarcode()]))
+                {
+                    $foodConsolidatedItem = $foodConsolidatedItems[$swap->getSwapBarcode()];
+                }
+                else
+                {
+                    $foodConsolidatedItem = null;
+                }
+
+                $productResponseObject = new ProductResponseObject($foodItem, $foodConsolidatedItem);
+                $swapResponseObjects[] = new SwapResponseObject($productResponseObject, $swap->getRank());
             }
         }
 
@@ -47,8 +74,9 @@ class SwapResponseObject implements JsonSerializable
 
     public function toArray() : array
     {
-        $arrayForm = $this->m_foodItem->toArray();
+        $arrayForm = $this->m_productResponseObject->toArray();
         $arrayForm['rank'] = $this->m_rank;
+        $arrayForm['swap_count'] = $this->m_swapCount;
         return $arrayForm;
     }
 
@@ -61,5 +89,4 @@ class SwapResponseObject implements JsonSerializable
 
     # Accessors
     public function getRank() : int { return $this->m_rank; }
-    public function getFoodItem() : FoodItem { return $this->m_foodItem; }
 }

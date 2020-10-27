@@ -1,26 +1,219 @@
 <?php
 
 
+use \Psr\Http\Message\ServerRequestInterface;
+use \Psr\Http\Message\ResponseInterface;
+
+
 class SwapsController extends AbstractSlimController
 {
     public static function registerRoutes(Slim\App $app)
     {
-        $app->post('/api/swaps/update-cache', function (Psr\Http\Message\ServerRequestInterface $request, Psr\Http\Message\ResponseInterface $response, $args) {
+        $app->post('/api/swaps/update-cache', function (ServerRequestInterface $request, ResponseInterface $response, $args) {
             $controller = new SwapsController($request, $response, $args);
             return $controller->handleUpdateCacheRequest();
         });
 
-        $app->get('/api/swaps/{barcode}', function (Psr\Http\Message\ServerRequestInterface $request, Psr\Http\Message\ResponseInterface $response, $args) {
+        # track that a user swapped a product.
+        $app->post('/api/swaps/tracked', function (ServerRequestInterface $request, ResponseInterface $response, $args) {
+            $controller = new SwapsController($request, $response, $args);
+            return $controller->handleCreateSwapTrackingRecord();
+        });
+
+        # remove that a user swapped out a product
+        $app->delete('/api/swaps/tracked', function (ServerRequestInterface $request, ResponseInterface $response, $args) {
+            $controller = new SwapsController($request, $response, $args);
+            return $controller->handleDeleteSwapTrackingRecord();
+        });
+
+        $app->get('/api/swaps/{barcode}', function (ServerRequestInterface $request, ResponseInterface $response, $args) {
             $barcode = $args['barcode'];
             $controller = new SwapsController($request, $response, $args);
-            return $controller->handleSwapRequest($barcode);
+            return $controller->handleGetSwapsRequest($barcode);
         });
 
         # ping endpoint for checking up and running.
-        $app->get('/api/ping', function (Psr\Http\Message\ServerRequestInterface $request, Psr\Http\Message\ResponseInterface $response, $args) {
+        $app->get('/api/ping', function (Psr\Http\Message\ServerRequestInterface $request, ResponseInterface $response, $args) {
             $responseData = ["message" => "API is up and running"];
             return ResponseLib::createSuccessResponse($responseData, $response);
         });
+    }
+
+
+    /**
+     * Handle a request that a user has swapped one product for another.
+     * @return ResponseInterface
+     */
+    private function handleCreateSwapTrackingRecord() : \Psr\Http\Message\ResponseInterface
+    {
+        try
+        {
+            $authTokensArray = $this->m_request->getHeader("X-APP-AUTH-TOKEN");
+
+            if (count($authTokensArray) !== 1)
+            {
+                throw new ExceptionAuthenticationFailed("Missing required authentication header.");
+            }
+
+            if (!isset($_ENV['X_APP_AUTH_TOKEN']) || empty($_ENV['X_APP_AUTH_TOKEN']))
+            {
+                throw new ExceptionMissingEnvironmentVariable("Missing required authentication header.");
+            }
+
+            if ($_ENV['X_APP_AUTH_TOKEN'] !== $authTokensArray[0])
+            {
+                throw new ExceptionAuthenticationFailed();
+            }
+
+            $requiredParameters = array(
+                'from_barcode',
+                'to_barcode',
+                'device_identifier'
+            );
+
+            $allPostPutVars = $this->m_request->getParsedBody();
+
+            foreach ($requiredParameters as $requiredParameter)
+            {
+                if (!isset($allPostPutVars[$requiredParameter]))
+                {
+                    throw new ExceptionMissingParameter($requiredParameter);
+                }
+            }
+
+            $fromBarcode = $allPostPutVars['from_barcode'];
+            $toBarcode = $allPostPutVars['to_barcode'];
+            $deviceIdentifier = $allPostPutVars['device_identifier'];
+
+            /* @var $swapRecordTable SwapRecordTable */
+            $swapRecordTable = SwapRecordTable::getInstance();
+
+            try
+            {
+                $swapRecord = $swapRecordTable->loadFromDeviceIdentifierAndBarcodes(
+                    $deviceIdentifier,
+                    $fromBarcode,
+                    $toBarcode
+                );
+
+                throw new ExceptionSwapRecordAlreadyExists();
+            }
+            catch (ExceptionSwapRecordNotFound $ex)
+            {
+                // record doesn't exist (good), create it.
+                SwapRecordTable::getInstance()->createFromDeviceIdentifierAndBarcodes(
+                    $deviceIdentifier,
+                    $fromBarcode,
+                    $toBarcode
+                );
+            }
+
+            $response = ResponseLib::createSuccessResponse(['message' => "Swap recorded."], $this->m_response);
+        }
+        catch (ExceptionSwapRecordAlreadyExists $swapRecordAlreadyExistsException)
+        {
+            $response = ResponseLib::createErrorResponse(409, "Conflict - record already exists.", $this->m_response);
+        }
+        catch (ExceptionSwapRecordNotFound $swapRecordNotFoundException)
+        {
+            $response = ResponseLib::createErrorResponse(404, "Could not delete, record not found.", $this->m_response);
+        }
+        catch (ExceptionAuthenticationFailed $authFailedException)
+        {
+            $response = ResponseLib::createAuthenticationFailedResponse($this->m_response);
+        }
+        catch (ExceptionMissingEnvironmentVariable $missingSettingException)
+        {
+            $response = ResponseLib::createMissingEnvironmentVariableResponse($missingSettingException, $this->m_response);
+        }
+        catch (ExceptionMissingParameter $missingRequredParameterException)
+        {
+            $response = ResponseLib::createMissingParameterResponse($missingRequredParameterException, $this->m_response);
+        }
+        catch (Exception $authFailedException)
+        {
+            $response = ResponseLib::createErrorResponse(500, "Whoops, something went wrong.", $this->m_response);
+        }
+
+        return $response;
+    }
+
+
+    private function handleDeleteSwapTrackingRecord() : \Psr\Http\Message\ResponseInterface
+    {
+        try
+        {
+            $authTokensArray = $this->m_request->getHeader("X-APP-AUTH-TOKEN");
+
+            if (count($authTokensArray) !== 1)
+            {
+                throw new ExceptionAuthenticationFailed("Missing required authentication header.");
+            }
+
+            if (!isset($_ENV['X_APP_AUTH_TOKEN']) || empty($_ENV['X_APP_AUTH_TOKEN']))
+            {
+                throw new ExceptionMissingEnvironmentVariable("Missing required authentication header.");
+            }
+
+            if ($_ENV['X_APP_AUTH_TOKEN'] !== $authTokensArray[0])
+            {
+                throw new ExceptionAuthenticationFailed();
+            }
+
+            $requiredParameters = array(
+                'from_barcode',
+                'to_barcode',
+                'device_identifier'
+            );
+
+            $allPostPutVars = $this->m_request->getParsedBody();
+
+            foreach ($requiredParameters as $requiredParameter)
+            {
+                if (!isset($allPostPutVars[$requiredParameter]))
+                {
+                    throw new ExceptionMissingParameter($requiredParameter);
+                }
+            }
+
+            $fromBarcode = $allPostPutVars['from_barcode'];
+            $toBarcode = $allPostPutVars['to_barcode'];
+            $deviceIdentifier = $allPostPutVars['device_identifier'];
+
+            /* @var $swapRecordTable SwapRecordTable */
+            $swapRecordTable = SwapRecordTable::getInstance();
+
+            $swapRecord = $swapRecordTable->loadFromDeviceIdentifierAndBarcodes(
+                $deviceIdentifier,
+                $fromBarcode,
+                $toBarcode
+            );
+
+            $swapRecord->delete();
+            $response = ResponseLib::createSuccessResponse(['message' => "Swap record deleted."], $this->m_response);
+        }
+        catch (ExceptionSwapRecordNotFound $swapRecordNotFoundException)
+        {
+            $response = ResponseLib::createErrorResponse(404, "Could not delete, record not found.", $this->m_response);
+        }
+        catch (ExceptionAuthenticationFailed $authFailedException)
+        {
+            $response = ResponseLib::createAuthenticationFailedResponse($this->m_response);
+        }
+        catch (ExceptionMissingEnvironmentVariable $missingSettingException)
+        {
+            $response = ResponseLib::createMissingEnvironmentVariableResponse($missingSettingException, $this->m_response);
+        }
+        catch (ExceptionMissingParameter $missingRequredParameterException)
+        {
+            $response = ResponseLib::createMissingParameterResponse($missingRequredParameterException, $this->m_response);
+        }
+        catch (Exception $authFailedException)
+        {
+            $response = ResponseLib::createErrorResponse(500, "Whoops, something went wrong.", $this->m_response);
+        }
+
+        return $response;
     }
 
 
@@ -29,11 +222,13 @@ class SwapsController extends AbstractSlimController
      * @param string $barcode
      * @return \Psr\Http\Message\ResponseInterface
      */
-    private function handleSwapRequest(string $barcode) : \Psr\Http\Message\ResponseInterface
+    private function handleGetSwapsRequest(string $barcode) : \Psr\Http\Message\ResponseInterface
     {
         try
         {
-            $swaps = SwapTable::getInstance()->loadForBarcode($barcode);
+            /* @var $swapTable SwapTable */
+            $swapTable = SwapTable::getInstance();
+            $swaps = $swapTable->loadForBarcode($barcode);
 
             if (count($swaps) === 0)
             {
@@ -47,7 +242,6 @@ class SwapsController extends AbstractSlimController
 
                 if (RANDOMIZATION_ENABLED)
                 {
-                    $compareFunc = function(SwapResponseObject $a, SwapResponseObject $b) { return $a->getRank() <=> $b->getRank(); };
                     $top3 = array();
 
                     foreach ($swapResponseObjects as $index => $swapResponseObject)
@@ -116,7 +310,11 @@ class SwapsController extends AbstractSlimController
                 $region
             );
 
-            $requestDescribeInstances = new \Programster\AwsWrapper\Requests\RequestDescribeInstances($region, [$_ENV['COMPUTE_INSTANCE_ID']]);
+            $requestDescribeInstances = new \Programster\AwsWrapper\Requests\RequestDescribeInstances(
+                $region,
+                [$_ENV['COMPUTE_INSTANCE_ID']]
+            );
+
             $ec2Client->describeInstances($requestDescribeInstances);
             $instances = $requestDescribeInstances->get_instances();
 
@@ -143,21 +341,11 @@ class SwapsController extends AbstractSlimController
         }
         catch (ExceptionAuthenticationFailed $ex)
         {
-            $response = ResponseLib::createErrorResponse(
-                401,
-                "Authentication failed",
-                $this->m_response,
-                ERROR_CODE_AUTHENTICATION_FAILED
-            );
+            $response = ResponseLib::createAuthenticationFailedResponse($this->m_response);
         }
         catch (ExceptionMissingEnvironmentVariable $missingSettingException)
         {
-            $response = ResponseLib::createErrorResponse(
-                500,
-                "Server is misconfigured. " . $missingSettingException->getMessage(),
-                $this->m_response,
-                ERROR_CODE_SERVER_MISSING_ENVIRONMENT_VARIABLE
-            );
+            $response = ResponseLib::createMissingEnvironmentVariableResponse($missingSettingException, $this->m_response);
         }
         catch (ExceptionMissingComputeInstance $e)
         {

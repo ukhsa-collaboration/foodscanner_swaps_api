@@ -22,6 +22,8 @@ if (isset($_ENV['ENVIRONMENT']) && $_ENV['ENVIRONMENT'] === "dev")
     $app->addErrorMiddleware($displayErrorDetails=true, $logErrors=true, $logErrorDetails=true);
 }
 
+$app->addBodyParsingMiddleware();
+
 
 // register controllers
 SwapsController::registerRoutes($app);

@@ -2,6 +2,7 @@
 
 /*
  * A class to represent a product in our response to /products/{barcode}
+ * This has custom badge logic added to it.
  */
 
 declare(strict_types = 1);
@@ -119,6 +120,14 @@ class ProductResponseObject implements JsonSerializable
             {
                 $arrayForm['badge'] = "12"; // high five man
             }
+            elseif
+            (
+                   $this->m_foodConsolidatedItem->getBadgeNew() === 1
+                || $this->m_foodConsolidatedItem->getBadgeNew() === "1"
+            )
+            {
+                $arrayForm['badge'] = "11"; // good choice badge
+            }
         }
 
         return $arrayForm;
@@ -129,4 +138,8 @@ class ProductResponseObject implements JsonSerializable
     {
         return $this->toArray();
     }
+
+
+    # Accessors
+    public function getFoodItem() : FoodItem { return $this->m_foodItem; }
 }

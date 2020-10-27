@@ -22,6 +22,11 @@ variable swaps_api_auth_token {
   description = "A long random string that should be placed in X_AUTH_TOKEN header of API requests to the swaps API for authentication.'"
 }
 
+variable swaps_api_app_auth_token {
+  type = string
+  description = "A long random string that should be placed in X_APP_AUTH_TOKEN header of API requests to the swaps API, by the phone APP, for authentication.'"
+}
+
 variable "ssh_public_key" {
   type = string
   description = "The public key that corresponds to the private SSH key you would want to use to log into the EC2 instances with, should you need to. Should start like 'ssh-rsa AAAA...'"
@@ -359,6 +364,7 @@ data "template_file" "user_data" {
     iam_ec2_key = var.iam_ec2_key
     iam_ec2_secret = var.iam_ec2_secret
     swaps_api_auth_token = var.swaps_api_auth_token
+    swaps_api_app_auth_token = var.swaps_api_app_auth_token
     docker_registry = var.swaps_api_docker_registry
     docker_image_name = var.swaps_api_docker_image_name
 
@@ -537,4 +543,3 @@ output "asg_name" {
   value       = aws_autoscaling_group.swaps_api_asg.name
   description = "The name of the Auto Scaling Group"
 }
-

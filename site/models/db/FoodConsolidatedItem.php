@@ -147,7 +147,7 @@ class FoodConsolidatedItem extends Programster\MysqlObjects\AbstractTableRowObje
 
     public function getTableHandler(): \Programster\MysqlObjects\TableInterface
     {
-        return new FoodTable();
+        return FoodConsolidatedTable::getInstance();
     }
 
 
