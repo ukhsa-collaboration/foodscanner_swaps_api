@@ -46,9 +46,9 @@ class FoodTable extends Programster\MysqlObjects\AbstractTable
      * Fetches the food items that correspond the the swaps passed in.
      * @param Swap $swaps
      * @param type $indexByBarcode
-     * @return type
+     * @return array - map of food barcodes to the foodItem objects.
      */
-    public function fetchForSwaps(Swap ...$swaps)
+    public function fetchForSwaps(Swap ...$swaps) : array
     {
         foreach ($swaps as $swap)
         {

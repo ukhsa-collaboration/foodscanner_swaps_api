@@ -141,7 +141,7 @@ class FoodItem extends Programster\MysqlObjects\AbstractTableRowObject implement
 
     public function getTableHandler(): \Programster\MysqlObjects\TableInterface
     {
-        return new FoodTable();
+        return FoodTable::getInstance();
     }
 
 

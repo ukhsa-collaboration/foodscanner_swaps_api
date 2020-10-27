@@ -36,7 +36,7 @@ class Swap extends Programster\MysqlObjects\AbstractTableRowObject
 
     public function getTableHandler(): \Programster\MysqlObjects\TableInterface
     {
-        return new SwapTable();
+        return SwapTable::getInstance();
     }
 
 

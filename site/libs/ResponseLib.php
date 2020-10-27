@@ -1,10 +1,6 @@
 <?php
 
-/*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
- */
+use \Psr\Http\Message\ResponseInterface;
 
 class ResponseLib
 {
@@ -16,14 +12,18 @@ class ResponseLib
      */
     public static function createSuccessResponse(
         $data,
-        Psr\Http\Message\ResponseInterface $response,
+        ResponseInterface $response,
         int $httpStatusCode=200
-    ) : \Psr\Http\Message\ResponseInterface
+    ) : ResponseInterface
     {
         $bodyJson = json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
         $body = $response->getBody();
         $body->write($bodyJson);
-        $returnResponse = $response->withStatus($httpStatusCode)->withHeader("Content-Type", "application/json")->withBody($body);
+
+        $returnResponse = $response->withStatus($httpStatusCode)
+            ->withHeader("Content-Type", "application/json")
+            ->withBody($body);
+
         return $returnResponse;
     }
 
@@ -39,9 +39,9 @@ class ResponseLib
     public static function createErrorResponse(
         int $httpStatusCode,
         string $errorMessage,
-        \Psr\Http\Message\ResponseInterface $response,
+        ResponseInterface $response,
         int $errorCode = 0
-    ) : \Psr\Http\Message\ResponseInterface
+    ) : ResponseInterface
     {
         $responseData = array(
             'error' => array(
@@ -53,7 +53,63 @@ class ResponseLib
         $bodyJson = json_encode($responseData, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
         $body = $response->getBody();
         $body->write($bodyJson);
-        $returnResponse = $response->withStatus($httpStatusCode)->withHeader("Content-Type", "application/json")->withBody($body);
+
+        $returnResponse = $response->withStatus($httpStatusCode)
+            ->withHeader("Content-Type", "application/json")
+            ->withBody($body);
+
         return $returnResponse;
+    }
+
+
+    /**
+     * Create the appropriate response for a missing environment variable.
+     * @param ExceptionMissingEnvironmentVariable $ex
+     * @return \Psr\Http\Message\ResponseInterface
+     */
+    public static function createMissingEnvironmentVariableResponse(
+        ExceptionMissingEnvironmentVariable $ex,
+        ResponseInterface $response
+    ) : ResponseInterface
+    {
+        return ResponseLib::createErrorResponse(
+            500,
+            "Server is misconfigured. Missing required environment variable: " . $ex->getEnvironmentVariableName(),
+            $response,
+            ERROR_CODE_SERVER_MISSING_ENVIRONMENT_VARIABLE
+        );
+    }
+
+
+    /**
+     * Create the appropriate response for authentication failing.
+     * @return \Psr\Http\Message\ResponseInterface
+     */
+    public static function createAuthenticationFailedResponse(ResponseInterface $response) : ResponseInterface
+    {
+        return ResponseLib::createErrorResponse(
+            401,
+            "Authentication failed",
+            $response,
+            ERROR_CODE_AUTHENTICATION_FAILED
+        );
+    }
+
+
+    /**
+     * Create the appropriate response for the request is missing a required parameter.
+     * @return \Psr\Http\Message\ResponseInterface
+     */
+    public static function createMissingParameterResponse(
+        ExceptionMissingParameter $ex,
+        ResponseInterface $response
+    ) : ResponseInterface
+    {
+        return ResponseLib::createErrorResponse(
+            400,
+            "Missing required parameter: " . $ex->getParameter(),
+            $response,
+            ERROR_CODE_MISSING_PARAMETER
+        );
     }
 }

@@ -25,7 +25,7 @@ $epectedEnvironmentVariables = array(
     "FOOD_DB_PASSWORD",
     "FOOD_DB_PORT",
     "FOOD_DB_TABLE",
-    
+
     "ETL_DB_HOST",
     "ETL_DB_DATABASE",
     "ETL_DB_USER",
@@ -34,6 +34,7 @@ $epectedEnvironmentVariables = array(
     "ETL_DB_TABLE",
 
     "X_AUTH_TOKEN",
+    "X_APP_AUTH_TOKEN",
 
     "AWS_EC2_KEY",
     "AWS_EC2_SECRET",

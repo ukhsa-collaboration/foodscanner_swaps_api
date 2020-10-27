@@ -39,7 +39,7 @@ class TrafficLightObject extends Programster\MysqlObjects\AbstractNoIdTableRowOb
 
     public function getTableHandler() : Programster\MysqlObjects\AbstractNoIdTable
     {
-        return new TrafficLightTable();
+        return TrafficLightTable::getInstance();
     }
 
 
