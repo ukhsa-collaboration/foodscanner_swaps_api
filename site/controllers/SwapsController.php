@@ -226,9 +226,15 @@ class SwapsController extends AbstractSlimController
     {
         try
         {
+            /* @var $foodTable FoodTable */
+            $foodTable = FoodTable::getInstance();
             /* @var $swapTable SwapTable */
             $swapTable = SwapTable::getInstance();
-            $swaps = $swapTable->loadForBarcode($barcode);
+
+            // using getBarcode() on product as swap barcodes should line up with food table barcodes, and may need to
+            // add/strip 0s etc, which gets figured out in $foodTable->findByBarcode
+            $product = $foodTable->findByBarcode($barcode);
+            $swaps = $swapTable->loadForBarcode($product->getBarcode());
 
             if (count($swaps) === 0)
             {
@@ -265,6 +271,10 @@ class SwapsController extends AbstractSlimController
                 $swapResponseObjects = array_slice($swapResponseObjects, 0, 33);
                 $response = ResponseLib::createSuccessResponse($swapResponseObjects, $this->m_response);
             }
+        }
+        catch (ExceptionProductNotFound $ex)
+        {
+            $response = ResponseLib::createErrorResponse(404, "Barcode not found.", $this->m_response, -100);
         }
         catch (Exception $ex)
         {
