@@ -174,6 +174,33 @@ variable "lb_certificate_arn" {
   description = "SSL certificate ARN for load balancer"
 }
 
+variable "s3_image_bucket_key" {
+  type = string
+  description = "The aws key for the IAM user that is able to read/write to the product images bucket"
+}
+
+variable "s3_image_bucket_secret" {
+  type = string
+  description = "The aws secret for the IAM user that is able to read/write to the product images bucket"
+}
+
+variable "s3_image_bucket_name" {
+  type = string
+  description = "The name of the bucket that holds the product images."
+}
+
+variable "s3_image_bucket_path" {
+  type = string
+  description = "The path to the folder that contains the images within the bucket. If at the very top, just use '/'"
+  default = "/"
+}
+
+variable "compressed_image_quality" {
+  type = string
+  description = "The quality level to compress the product images to. Should be a number between 1-100. Eg. 60"
+  default = 60
+}
+
 data "aws_vpc" "swaps_api_vpc" {
   id = var.vpc_id
 }
@@ -229,6 +256,12 @@ data "template_file" "compute_instance_user_data" {
     etl_database_name = var.etl_database_name
     etl_database_port = var.etl_database_port
     etl_database_table = var.etl_database_table
+
+    s3_image_bucket_key = var.s3_image_bucket_key
+    s3_image_bucket_secret = var.s3_image_bucket_secret
+    s3_image_bucket_name = var.s3_image_bucket_name
+    s3_image_bucket_path = var.s3_image_bucket_path
+    compressed_image_quality = var.compressed_image_quality
   }
 }
 
@@ -268,6 +301,11 @@ resource "aws_instance" "swaps_compute_engine" {
   subnet_id = tolist(data.aws_subnet_ids.public.ids)[0]
   user_data = data.template_file.compute_instance_user_data.rendered
   associate_public_ip_address = true
+
+  # Need a large disk for temporary storage of the product images for processing.
+  root_block_device {
+    volume_size = 25
+  }
 
   tags = {
     Name = "swaps-cache-calculator"
@@ -543,3 +581,4 @@ output "asg_name" {
   value       = aws_autoscaling_group.swaps_api_asg.name
   description = "The name of the Auto Scaling Group"
 }
+
