@@ -10,11 +10,11 @@ declare(strict_types = 1);
 
 class ProductResponseObject implements JsonSerializable
 {
-    private FoodItem $m_foodItem;
+    private FoodItemInterface $m_foodItem;
     private ?FoodConsolidatedItem $m_foodConsolidatedItem;
 
 
-    public function __construct(FoodItem $foodItem, ?FoodConsolidatedItem $foodConsolidatedItem)
+    public function __construct(FoodItemInterface $foodItem, ?FoodConsolidatedItem $foodConsolidatedItem)
     {
         $this->m_foodItem = $foodItem;
         $this->m_foodConsolidatedItem = $foodConsolidatedItem;
@@ -141,5 +141,5 @@ class ProductResponseObject implements JsonSerializable
 
 
     # Accessors
-    public function getFoodItem() : FoodItem { return $this->m_foodItem; }
+    public function getFoodItem() : FoodItemInterface { return $this->m_foodItem; }
 }

@@ -43,9 +43,20 @@ class SwapResponseObject implements JsonSerializable
     public static function createForSwaps(Swap ...$swaps) : array
     {
         $swapResponseObjects = array();
+        /* @var $foodTable FoodTable */
         $foodTable = FoodTable::getInstance();
+        /* @var $foodBbTable FoodBbTable */
+        $foodBbTable = FoodBbTable::getInstance();
         $foodConsolidatedTable = FoodConsolidatedTable::getInstance();
         $foodItems = $foodTable->fetchForSwaps(...$swaps);
+        $foodBbItems = $foodBbTable->fetchForSwaps(...$swaps);
+
+        // can't just do an array_merge due to barcodes being numeric most of the time.
+        foreach ($foodBbItems as $index => $foodItem)
+        {
+            $foodItems[$index] = $foodItem;
+        }
+
         $foodConsolidatedItems = $foodConsolidatedTable->fetchForSwaps(...$swaps);
 
         foreach ($swaps as $swap)
