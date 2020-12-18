@@ -201,6 +201,11 @@ variable "compressed_image_quality" {
   default = 60
 }
 
+variable "machine_learning_algorithm" {
+  type = string
+  description = "The name of the machine learning algorithm to use for categorization. E.g. 'spacy', 'sklearn', or 'both'"
+}
+
 data "aws_vpc" "swaps_api_vpc" {
   id = var.vpc_id
 }
@@ -262,6 +267,7 @@ data "template_file" "compute_instance_user_data" {
     s3_image_bucket_name = var.s3_image_bucket_name
     s3_image_bucket_path = var.s3_image_bucket_path
     compressed_image_quality = var.compressed_image_quality
+    machine_learning_algorithm = var.machine_learning_algorithm
   }
 }
 
@@ -277,6 +283,7 @@ resource "aws_security_group" "swaps_compute_engine" {
     cidr_blocks = [
       data.aws_vpc.swaps_api_vpc.cidr_block]
   }
+
   # Allow the server to connect outwards. E.g. to apply updates etc.
   egress {
     from_port   = 0
@@ -581,4 +588,3 @@ output "asg_name" {
   value       = aws_autoscaling_group.swaps_api_asg.name
   description = "The name of the Auto Scaling Group"
 }
-
