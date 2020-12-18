@@ -23,13 +23,23 @@ class ProductsController extends AbstractSlimController
         {
             /* @var $foodTable FoodTable */
             $foodTable = FoodTable::getInstance();
-            $product = $foodTable->findByBarcode($barcode);
+            /* @var $foodBbTable FoodBbTable */
+            $foodBbTable = FoodBbTable::getInstance();
 
             try
             {
-                /* @Var $etlTable FoodConsolidatedTable */
+                $product = $foodTable->findByBarcode($barcode);
+            }
+            catch (ExceptionProductNotFound $ex)
+            {
+                $product = $foodBbTable->findByBarcode($barcode);
+            }
+
+            try
+            {
+                /* @var $etlTable FoodConsolidatedTable */
                 $etlTable = FoodConsolidatedTable::getInstance();
-                $foodConsolidatedItem = $etlTable->findByBarcode($barcode);
+                $foodConsolidatedItem = $etlTable->findByBarcode($product->getBarcode());
             }
             catch (ExceptionProductNotFound $ex)
             {
@@ -46,6 +56,14 @@ class ProductsController extends AbstractSlimController
         }
         catch (Exception $ex)
         {
+            $context = array(
+                'exception_message' => $ex->getMessage(),
+                'exception_line' => $ex->getLine(),
+                'exception_file' => $ex->getFile(),
+                'trace' => $ex->getTrace()
+            );
+
+            SiteSpecific::getLogger()->error("Unexpected error when fetching product", $context);
             $response = ResponseLib::createErrorResponse(500, "Whoops, something went wrong.", $this->m_response);
         }
 

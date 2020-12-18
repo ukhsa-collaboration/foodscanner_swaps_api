@@ -28,5 +28,6 @@ $app->addBodyParsingMiddleware();
 // register controllers
 SwapsController::registerRoutes($app);
 ProductsController::registerRoutes($app);
+LogsController::registerRoutes($app);
 
 $app->run();
