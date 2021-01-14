@@ -1,16 +1,13 @@
 # Due to layout of this project, the dockerfile will be moved up two directories and run during
 # the build. Thus when performing any ADD commands, remember that this is "where you are"
 
-FROM ubuntu:18.04
+FROM ubuntu:20.04
 
 ENV DEBIAN_FRONTEND=noninteract
 
 RUN apt-get update \
     && apt-get dist-upgrade -y \
-    && apt-get install -y software-properties-common apt-transport-https \
-    && add-apt-repository ppa:ondrej/php -y \
-    && apt-get update \
-    && apt-get install -y composer vim nginx php-fpm curl supervisor cron \
+    && apt-get install -y software-properties-common apt-transport-https composer vim nginx php-fpm curl supervisor cron \
        php7.4-cli php7.4-xml php7.4-zip php7.4-mbstring php7.4-bcmath php7.4-curl php7.4-mysql
 
 # expose port 80 and 443 (ssl) for the web requests
