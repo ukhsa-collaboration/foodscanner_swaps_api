@@ -21,24 +21,7 @@ class LogsController extends AbstractSlimController
     {
         try
         {
-            if (!isset($_SERVER['PHP_AUTH_USER']))
-            {
-                throw new ExceptionAuthenticationFailed("Missing required auth user");
-            }
-
-            if (!isset($_SERVER['PHP_AUTH_PW']))
-            {
-                throw new ExceptionAuthenticationFailed("Missing required auth password");
-            }
-
-            $user = $_SERVER['PHP_AUTH_USER'];
-            $password = $_SERVER['PHP_AUTH_PW'];
-
-            if ($user !== "admin" || $password !== 'sJ}EG67H}UvI{NRi3}')
-            {
-                throw new ExceptionAuthenticationFailed("Authentication failed");
-            }
-
+            SiteSpecific::checkIsRemoteAdminRequest();
             $allGetVars = $this->m_request->getQueryParams();
             $whereClauses = [];
 
