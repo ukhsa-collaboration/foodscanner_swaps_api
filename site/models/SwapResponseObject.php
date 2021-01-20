@@ -100,4 +100,5 @@ class SwapResponseObject implements JsonSerializable
 
     # Accessors
     public function getRank() : int { return $this->m_rank; }
+    public function getFoodItem() : FoodItemInterface { return $this->m_productResponseObject->getFoodItem(); }
 }

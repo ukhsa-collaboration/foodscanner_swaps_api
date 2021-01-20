@@ -169,6 +169,18 @@ variable "food_database_table" {
   default = "f_food"
 }
 
+variable "food_database_brandbank_table" {
+  type = string
+  description = "The table that contains the brandbank-specific food information for the CMS. e.g. f_food_bb"
+  default = "f_food_bb"
+}
+
+variable "food_database_traffic_lights_table" {
+  type = string
+  description = "The name of the table that contains the traffic light data e.g. f_trafficlights"
+  default = "f_trafficlights"
+}
+
 variable "lb_certificate_arn" {
   type = string
   description = "SSL certificate ARN for load balancer"
@@ -432,7 +444,9 @@ data "template_file" "user_data" {
     food_database_name = var.food_database_name
     food_database_port = var.food_database_port
     food_database_table = var.food_database_table
-    
+    food_database_brandbank_table = var.food_database_brandbank_table
+    food_database_traffic_lights_table = var.food_database_traffic_lights_table
+
     compute_instance_id = aws_instance.swaps_compute_engine.id
   }
 }

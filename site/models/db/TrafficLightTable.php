@@ -30,7 +30,7 @@ class TrafficLightTable extends \Programster\MysqlObjects\AbstractNoIdTable
     }
 
 
-    public function getTableName() { return "f_trafficlights"; }
+    public function getTableName() { return $_ENV['FOOD_TRAFFIC_LIGHTS_TABLE_NAME']; }
 
 
     public function validateInputs(array $data): array

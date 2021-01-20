@@ -32,6 +32,13 @@ class SwapsController extends AbstractSlimController
             return $controller->handleGetSwapsRequest($barcode);
         });
 
+        $app->get('/api/swaps/{barcode}/with-categories/{algorithm}', function (ServerRequestInterface $request, ResponseInterface $response, $args) {
+            $barcode = $args['barcode'];
+            $algorithm = $args['algorithm'];
+            $controller = new SwapsController($request, $response, $args);
+            return $controller->handleGetSwapsWithCategoriesRequest($barcode, $algorithm);
+        });
+
         # ping endpoint for checking up and running.
         $app->get('/api/ping', function (Psr\Http\Message\ServerRequestInterface $request, ResponseInterface $response, $args) {
             $responseData = ["message" => "API is up and running"];
@@ -289,6 +296,91 @@ class SwapsController extends AbstractSlimController
         catch (Exception $ex)
         {
             $response = ResponseLib::createErrorResponse(500, "Whoops, something went wrong.", $this->m_response);
+        }
+
+        return $response;
+    }
+
+
+    private function handleGetSwapsWithCategoriesRequest(string $barcode, string $mlAlgorithm)
+    {
+        try
+        {
+            /* @var $foodTable FoodTable */
+            $foodTable = FoodTable::getInstance();
+            /* @var $foodBbTable FoodBbTable */
+            $foodBbTable = FoodBbTable::getInstance();
+            /* @var $swapTable SwapTable */
+            $swapTable = SwapTable::getInstance();
+
+            $mlCategoriesTable = FoodMachineLearningCategorisationTable::getInstance();
+
+            // using getBarcode() on product as swap barcodes should line up with food table barcodes, and may need to
+            // add/strip 0s etc, which gets figured out in $foodTable->findByBarcode
+            try
+            {
+                $product = $foodTable->findByBarcode($barcode);
+            }
+            catch (ExceptionProductNotFound $ex)
+            {
+                $product = $foodBbTable->findByBarcode($barcode);
+            }
+
+            $swaps = $swapTable->loadForBarcode($product->getBarcode());
+
+            if (count($swaps) === 0)
+            {
+                // barcode not found, throw an error
+                $response = ResponseLib::createErrorResponse(404, "Barcode not found.", $this->m_response, -100);
+            }
+            else
+            {
+                $swapResponseObjects = SwapResponseObject::createForSwaps(...$swaps);
+                $compareFunc = function(SwapResponseObject $a, SwapResponseObject $b) { return $a->getRank() <=> $b->getRank(); };
+
+                if (RANDOMIZATION_ENABLED)
+                {
+                    $top3 = array();
+
+                    foreach ($swapResponseObjects as $index => $swapResponseObject)
+                    {
+                        /* @var $swapResponseObject SwapResponseObject */
+                        if ($swapResponseObject->getRank() < 4)
+                        {
+                            $top3[] = $swapResponseObject;
+                            unset($swapResponseObjects[$index]);
+                        }
+                    }
+
+                    $swapResponseObjects = [...$top3, ...$swapResponseObjects];
+                }
+                else
+                {
+                    uasort($swapResponseObjects, $compareFunc);
+                }
+
+                $swapDebugObjects = [];
+
+                foreach ($swapResponseObjects as $swapResponseObject)
+                {
+                    $swapDebugObjects[] = new SwapDebugResponseObject($swapResponseObject, $mlAlgorithm);
+                }
+
+                $responseData = array(
+                    'product' => new FoodItemDebugResponseObject($product, $mlAlgorithm),
+                    'swaps' => $swapDebugObjects,
+                );
+
+                $response = ResponseLib::createSuccessResponse($responseData, $this->m_response);
+            }
+        }
+        catch (ExceptionProductNotFound $ex)
+        {
+            $response = ResponseLib::createErrorResponse(404, "Barcode not found.", $this->m_response, -100);
+        }
+        //catch (Exception $ex)
+        {
+        //    $response = ResponseLib::createErrorResponse(500, "Whoops, something went wrong.", $this->m_response);
         }
 
         return $response;
