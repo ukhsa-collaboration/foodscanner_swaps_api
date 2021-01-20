@@ -34,7 +34,7 @@ class FoodBbTable extends \Programster\MysqlObjects\AbstractTable
         return FoodBbItem::class;
     }
 
-    public function getTableName() { return 'f_food_bb'; }
+    public function getTableName() { return $_ENV['FOOD_BRANDBANK_TABLE_NAME']; }
 
 
     public function validateInputs(array $data): array
@@ -51,12 +51,22 @@ class FoodBbTable extends \Programster\MysqlObjects\AbstractTable
      */
     public function fetchForSwaps(Swap ...$swaps) : array
     {
+        $barcodes = [];
+
         foreach ($swaps as $swap)
         {
             $barcodes[] = $this->getDb()->escape_string($swap->getSwapBarcode());
         }
 
-        $foodItems = $this->loadWhereAnd(array('barcode' => $barcodes));
+        if (count($barcodes) > 0)
+        {
+            $foodItems = $this->loadWhereAnd(array('barcode' => $barcodes));
+        }
+        else
+        {
+            $foodItems = [];
+        }
+
         $result = array();
 
         foreach ($foodItems as $foodItem)

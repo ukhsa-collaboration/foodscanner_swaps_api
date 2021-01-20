@@ -79,7 +79,9 @@ class ProductResponseObject implements JsonSerializable
                 'salt'      => ($this->m_foodItem->getSaltLevel() ? $this->m_foodItem->getSaltLevel() : 'Low'),
             );
 
-            $trafficLights = TrafficLightTable::getInstance()->loadWhereAnd($wherePairs);
+            /* @var $trafficLightTable TrafficLightTable */
+            $trafficLightTable = TrafficLightTable::getInstance();
+            $trafficLights = $trafficLightTable->loadWhereAnd($wherePairs);
 
             if (count($trafficLights) === 1)
             {

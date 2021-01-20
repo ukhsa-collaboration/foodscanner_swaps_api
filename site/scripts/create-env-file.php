@@ -25,6 +25,8 @@ $epectedEnvironmentVariables = array(
     "FOOD_DB_PASSWORD",
     "FOOD_DB_PORT",
     "FOOD_DB_TABLE",
+    "FOOD_BRANDBANK_TABLE_NAME",
+    "FOOD_TRAFFIC_LIGHTS_TABLE_NAME",
 
     "ETL_DB_HOST",
     "ETL_DB_DATABASE",
