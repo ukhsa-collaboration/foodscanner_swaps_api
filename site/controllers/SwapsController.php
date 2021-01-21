@@ -327,13 +327,9 @@ class SwapsController extends AbstractSlimController
             }
 
             $swaps = $swapTable->loadForBarcode($product->getBarcode());
+            $swapDebugObjects = array();
 
-            if (count($swaps) === 0)
-            {
-                // barcode not found, throw an error
-                $response = ResponseLib::createErrorResponse(404, "Barcode not found.", $this->m_response, -100);
-            }
-            else
+            if (count($swaps) > 0)
             {
                 $swapResponseObjects = SwapResponseObject::createForSwaps(...$swaps);
                 $compareFunc = function(SwapResponseObject $a, SwapResponseObject $b) { return $a->getRank() <=> $b->getRank(); };
@@ -359,28 +355,26 @@ class SwapsController extends AbstractSlimController
                     uasort($swapResponseObjects, $compareFunc);
                 }
 
-                $swapDebugObjects = [];
-
                 foreach ($swapResponseObjects as $swapResponseObject)
                 {
                     $swapDebugObjects[] = new SwapDebugResponseObject($swapResponseObject, $mlAlgorithm);
                 }
-
-                $responseData = array(
-                    'product' => new FoodItemDebugResponseObject($product, $mlAlgorithm),
-                    'swaps' => $swapDebugObjects,
-                );
-
-                $response = ResponseLib::createSuccessResponse($responseData, $this->m_response);
             }
+
+            $responseData = array(
+                'product' => new FoodItemDebugResponseObject($product, $mlAlgorithm),
+                'swaps' => $swapDebugObjects,
+            );
+
+            $response = ResponseLib::createSuccessResponse($responseData, $this->m_response);
         }
         catch (ExceptionProductNotFound $ex)
         {
             $response = ResponseLib::createErrorResponse(404, "Barcode not found.", $this->m_response, -100);
         }
-        //catch (Exception $ex)
+        catch (Exception $ex)
         {
-        //    $response = ResponseLib::createErrorResponse(500, "Whoops, something went wrong.", $this->m_response);
+            $response = ResponseLib::createErrorResponse(500, "Whoops, something went wrong.", $this->m_response);
         }
 
         return $response;
