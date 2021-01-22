@@ -11,6 +11,7 @@ class FoodItemDebugResponseObject implements JsonSerializable
     private string $m_algorithmName;
     private ?string $m_pheCat;
     private string $m_pheCatContext;
+    private ?bool $m_pgcBadgeFlag = null;
 
 
     /**
@@ -42,6 +43,7 @@ class FoodItemDebugResponseObject implements JsonSerializable
         try
         {
             $etlRow = $etlTable->findByBarcode($this->m_foodItem->getBarcode());
+            $this->m_pgcBadgeFlag = ($etlRow->getPgcBadge() === 1 || $etlRow->getPgcBadge() === "1");
             $pheCat = $etlRow->getPHECat();
             $mlRow = $mlTable->findByBarcode($this->m_foodItem->getBarcode());
 
@@ -74,6 +76,7 @@ class FoodItemDebugResponseObject implements JsonSerializable
         $arrayForm = $this->m_foodItem->toArray();
         $arrayForm['PHE_Cat'] = $this->m_pheCat;
         $arrayForm['PHE_Cat_context'] = $this->m_pheCatContext;
+        $arrayForm['pgc_badge'] = $this->m_pgcBadgeFlag;
         return $arrayForm;
     }
 
@@ -87,4 +90,5 @@ class FoodItemDebugResponseObject implements JsonSerializable
     # Accessors
     public function getPheCat() : ?string { return $this->m_pheCat; }
     public function getPheCatContext() : string { return $this->m_pheCatContext; }
+    public function getPgcBadgeFlag() : ?bool { return $this->m_pgcBadgeFlag; }
 }

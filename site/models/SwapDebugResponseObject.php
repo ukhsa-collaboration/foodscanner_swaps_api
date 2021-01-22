@@ -34,6 +34,7 @@ class SwapDebugResponseObject implements JsonSerializable
         $arrayForm = $this->m_swapResponseObject->toArray();
         $arrayForm['PHE_Cat'] = $foodDebugItem->getPheCat();
         $arrayForm['PHE_Cat_context'] = $foodDebugItem->getPheCatContext();
+        $arrayForm['pgc_badge'] = $foodDebugItem->getPgcBadgeFlag();
         return $arrayForm;
     }
 
