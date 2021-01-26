@@ -39,9 +39,25 @@ class SwapTable extends Programster\MysqlObjects\AbstractTable
     }
 
 
-    public function loadForBarcode(string $barcode) : array
+    /**
+     * Fetches the swaps for a specified barcode.
+     * @param string $barcode
+     * @param bool $reversed - if set to true, fetches the products acts as a swap for, rather than
+     * fetching swaps for this product. (product being the item having the specified barcode
+     * @return array
+     */
+    public function loadForBarcode(string $barcode, bool $reversed=false) : array
     {
-        return $this->loadWhereAnd(['barcode' => $barcode]);
+        if ($reversed === false)
+        {
+            $models = $this->loadWhereAnd(['barcode' => $barcode]);
+        }
+        else
+        {
+            $models = $this->loadWhereAnd(['swap_barcode' => $barcode]);
+        }
+
+        return $models;
     }
 }
 
