@@ -26,6 +26,12 @@ class SwapsController extends AbstractSlimController
             return $controller->handleDeleteSwapTrackingRecord();
         });
 
+        $app->get('/api/swaps/{barcode}/reversed', function (ServerRequestInterface $request, ResponseInterface $response, $args) {
+            $barcode = $args['barcode'];
+            $controller = new SwapsController($request, $response, $args);
+            return $controller->handleGetReversedSwapsRequest($barcode);
+        });
+
         $app->get('/api/swaps/{barcode}', function (ServerRequestInterface $request, ResponseInterface $response, $args) {
             $barcode = $args['barcode'];
             $controller = new SwapsController($request, $response, $args);
@@ -288,6 +294,65 @@ class SwapsController extends AbstractSlimController
                 $swapResponseObjects = array_slice($swapResponseObjects, 0, 33);
                 $response = ResponseLib::createSuccessResponse($swapResponseObjects, $this->m_response);
             }
+        }
+        catch (ExceptionProductNotFound $ex)
+        {
+            $response = ResponseLib::createErrorResponse(404, "Barcode not found.", $this->m_response, -100);
+        }
+        catch (Exception $ex)
+        {
+            $response = ResponseLib::createErrorResponse(500, "Whoops, something went wrong.", $this->m_response);
+        }
+
+        return $response;
+    }
+
+
+    /**
+     * Handle a request to get the products this product is a swap for.
+     * @param string $barcode
+     * @return type
+     */
+    private function handleGetReversedSwapsRequest(string $barcode)
+    {
+        try
+        {
+            /* @var $foodTable FoodTable */
+            $foodTable = FoodTable::getInstance();
+            /* @var $foodBbTable FoodBbTable */
+            $foodBbTable = FoodBbTable::getInstance();
+            /* @var $swapTable SwapTable */
+            $swapTable = SwapTable::getInstance();
+
+            // using getBarcode() on product as swap barcodes should line up with food table barcodes, and may need to
+            // add/strip 0s etc, which gets figured out in $foodTable->findByBarcode
+            try
+            {
+                $product = $foodTable->findByBarcode($barcode);
+            }
+            catch (ExceptionProductNotFound $ex)
+            {
+                $product = $foodBbTable->findByBarcode($barcode);
+            }
+
+            $swaps = $swapTable->loadForBarcode($product->getBarcode(), true);
+            $otherProductBarcodes = array();
+
+            if (count($swaps) > 0)
+            {
+                foreach ($swaps as $swap)
+                {
+                    /* @var $swap Swap */
+                    $otherProductBarcodes[] = $swap->getBarcode();
+                }
+            }
+
+            $responseData = array(
+                'product' => $product,
+                'barcodes_is_swap_for' => $otherProductBarcodes,
+            );
+
+            $response = ResponseLib::createSuccessResponse($responseData, $this->m_response);
         }
         catch (ExceptionProductNotFound $ex)
         {
