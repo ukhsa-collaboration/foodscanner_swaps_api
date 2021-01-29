@@ -15,7 +15,8 @@ pipeline
         PROJECT = 'swaps-api-stg'
 //         IMAGE = 'swaps-api-stg:latest'
         IMAGE = 'swaps-api-stg:latest'
-        DOCKERFILEPATH = 'docker'
+//         DOCKERFILEPATH = 'docker'
+        DOCKERFILEPATH = "--build-arg -f docker/Dockerfile"
         ECRURL = '422072214762.dkr.ecr.eu-west-2.amazonaws.com/swaps-api-stg'
         ECRCRED = 'ecr:eu-west-2:phe-uat'
     }
