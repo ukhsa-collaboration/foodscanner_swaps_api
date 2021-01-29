@@ -14,7 +14,7 @@ pipeline
         VERSION = 'latest'
         PROJECT = 'swaps-api-stg'
 //         IMAGE = 'swaps-api-stg:latest'
-        IMAGE = 'foodscanner_swaps_api/docker/swaps-api-stg:latest'
+        IMAGE = 'docker/swaps-api-stg:latest'
         ECRURL = '422072214762.dkr.ecr.eu-west-2.amazonaws.com/swaps-api-stg'
         ECRCRED = 'ecr:eu-west-2:phe-uat'
     }
