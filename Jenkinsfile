@@ -1,4 +1,4 @@
-String branchName = "main"
+String branchName = "master"
 String gitCredentials = "phe-jenkins-ssh"
 String repoUrl = "git@github.com:publichealthengland/foodscanner_swaps_api.git"
 
