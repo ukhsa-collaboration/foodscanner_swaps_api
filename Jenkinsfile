@@ -16,7 +16,7 @@ pipeline
 //         IMAGE = 'swaps-api-stg:latest'
         IMAGE = 'swaps-api-stg:latest'
 //         DOCKERFILEPATH = 'docker'
-        DOCKERFILEPATH = "--build-arg -f docker/Dockerfile ."
+        DOCKERFILEPATH = "--build-arg -f docker/Dockerfile -t swaps-api-stg ."
         ECRURL = '422072214762.dkr.ecr.eu-west-2.amazonaws.com/swaps-api-stg'
         ECRCRED = 'ecr:eu-west-2:phe-uat'
     }
@@ -49,7 +49,8 @@ pipeline
                 script
                 {
                     // Build the docker image using a Dockerfile
-                    docker.build("$IMAGE","$DOCKERFILEPATH")
+//                     docker.build("$IMAGE","$DOCKERFILEPATH")
+                       docker.build("$DOCKERFILEPATH")
                 }
             }
         }
