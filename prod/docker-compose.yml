@@ -1,0 +1,17 @@
+version: "3"
+
+services:
+    app:
+        container_name: swaps-app
+        build:
+            context: .
+            dockerfile: ./docker/Dockerfile
+        image: swaps-api
+        restart: always
+        ports:
+            - "80:80"
+            - "443:443"
+        env_file:
+            - .env
+
+

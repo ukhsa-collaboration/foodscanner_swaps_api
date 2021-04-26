@@ -1,0 +1,65 @@
+#cloud-config
+
+packages:
+  - docker.io
+
+# create the docker group
+groups:
+  - docker
+  
+users:
+  - name: ubuntu
+    groups: docker
+    home: /home/ubuntu
+    shell: /bin/bash
+    sudo: ALL=(ALL) NOPASSWD:ALL
+    ssh-authorized-keys:
+      - ${ssh_public_key}
+
+# Add default auto created user to docker group
+system_info:
+  default_user:
+    groups: [docker]
+
+# https://docs.docker.com/engine/reference/commandline/login/
+runcmd:
+  - sudo apt update
+  - sudo apt upgrade -y
+  - sudo apt install curl unzip -y
+  - curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+  - unzip awscliv2.zip
+  - sudo ./aws/install -i /usr/local/aws-cli -b /usr/local/bin
+  - aws configure set aws_access_key_id ${iam_ecr_key}
+  - aws configure set aws_secret_access_key ${iam_ecr_secret}
+  - aws configure set default.region eu-west-2
+  - aws ecr get-login-password --region eu-west-2 | docker login --username AWS --password-stdin ${docker_registry}
+  - docker pull ${docker_image_name}
+  - >-
+    docker run --restart=always 
+    -p=80:80 
+    -e "SWAPS_DB_HOST=${swaps_database_host}" 
+    -e "SWAPS_DB_DATABASE=${swaps_database_name}" 
+    -e "SWAPS_DB_USER=${swaps_database_username}" 
+    -e "SWAPS_DB_PASSWORD=${swaps_database_password}" 
+    -e "SWAPS_DB_PORT=${swaps_database_port}" 
+    -e "FOOD_DB_HOST=${food_database_host}" 
+    -e "FOOD_DB_DATABASE=${food_database_name}" 
+    -e "FOOD_DB_USER=${food_database_username}" 
+    -e "FOOD_DB_PASSWORD=${food_database_password}" 
+    -e "FOOD_DB_PORT=${food_database_port}" 
+    -e "FOOD_DB_TABLE=${food_database_table}" 
+    -e "FOOD_BRANDBANK_TABLE_NAME=${food_database_brandbank_table}" 
+    -e "FOOD_TRAFFIC_LIGHTS_TABLE_NAME=${food_database_traffic_lights_table}" 
+    -e "ETL_DB_HOST=${etl_database_host}" 
+    -e "ETL_DB_DATABASE=${etl_database_name}" 
+    -e "ETL_DB_USER=${etl_database_username}" 
+    -e "ETL_DB_PASSWORD=${etl_database_password}" 
+    -e "ETL_DB_PORT=${etl_database_port}" 
+    -e "ETL_DB_TABLE=${etl_database_table}" 
+    -e "X_AUTH_TOKEN=${swaps_api_auth_token}" 
+    -e "X_APP_AUTH_TOKEN=${swaps_api_app_auth_token}" 
+    -e "AWS_EC2_KEY=${iam_ec2_key}" 
+    -e "AWS_EC2_SECRET=${iam_ec2_secret}" 
+    -e "COMPUTE_INSTANCE_ID=${compute_instance_id}" 
+    -e "EC2_REGION=eu-west-2" 
+    ${docker_image_name}
