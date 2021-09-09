@@ -224,6 +224,16 @@ variable "machine_learning_algorithm" {
   description = "The name of the machine learning algorithm to use for categorization. E.g. 'spacy', 'sklearn', or 'both'"
 }
 
+
+variable "backend_state_bucket" {
+  type = string
+  default = "phe-stg-fsswaps-eu-west-2-terraform-state"
+}
+
+variable "backend_state_bucket_acl_value" {
+  type = string
+  default = "private"
+}
 data "aws_vpc" "swaps_api_vpc" {
   id = var.vpc_id
 }
@@ -289,6 +299,10 @@ data "template_file" "compute_instance_user_data" {
   }
 }
 
+resource "aws_s3_bucket" "backend-state-bucket" {
+    bucket = var.backend_state_bucket
+    acl = var.backend_state_bucket_acl_value
+}
 
 # Create security group for the cache-compute instance
 resource "aws_security_group" "swaps_compute_engine" {
